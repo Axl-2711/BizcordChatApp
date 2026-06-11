@@ -1,0 +1,32 @@
+:root {
+  --bg: #f5f6fa; --surface: #ffffff; --text: #1d2233; --muted: #596177; --border: #e1e4ed;
+  --accent: #4338ca; --accent-hover: #3730a3; --accent-soft: #eceefe; --bad: #b42318;
+  --radius: 10px;
+}
+* { box-sizing: border-box; }
+html, body, #root { height: 100%; }
+body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); line-height: 1.5; }
+button, input, textarea { font: inherit; color: inherit; }
+h1, h2 { margin: 0; line-height: 1.25; }
+:focus-visible { outline: 3px solid #818cf8; outline-offset: 2px; }
+.muted { color: var(--muted); }
+
+.btn { display: inline-block; border: 1px solid var(--border); background: var(--surface); padding: 0.55rem 1rem; border-radius: 8px; cursor: pointer; font-weight: 600; text-decoration: none; }
+.btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.btn-primary:hover { background: var(--accent-hover); }
+.btn-block { width: 100%; margin-top: 1rem; }
+input { width: 100%; border: 1px solid #b9bfd0; border-radius: 8px; padding: 0.6rem 0.75rem; background: #fff; }
+input:focus { border-color: var(--accent); }
+label { display: block; font-weight: 600; margin: 1.25rem 0 0.35rem; }
+.field-error { color: var(--bad); font-size: 0.85rem; margin: 0.4rem 0 0; }
+
+.app-shell { min-height: 100%; display: flex; flex-direction: column; }
+.navbar { display: flex; align-items: center; padding: 0.75rem 1.25rem; background: var(--surface); border-bottom: 1px solid var(--border); }
+.brand { display: flex; align-items: center; gap: 0.6rem; text-decoration: none; color: var(--text); }
+.brand-mark { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 8px; background: var(--accent); color: #fff; font-weight: 700; }
+.brand-name { font-weight: 700; font-size: 1.15rem; }
+
+.join-page, .page { flex: 1; display: grid; place-content: center; padding: 1rem; }
+.page { text-align: center; gap: 0.75rem; justify-items: center; }
+.card { width: min(400px, 100%); background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 2rem; }
+.card h1 { font-size: 1.5rem; margin-bottom: 0.25rem; }
