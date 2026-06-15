@@ -76,4 +76,15 @@ textarea:disabled { background: var(--bg); }
   .sidebar-close, .menu-btn { display: inline-block; }
   .overlay { display: block; position: fixed; inset: 0; background: rgba(20, 24, 40, 0.4); z-index: 10; }
 }
+/* ---------- Stage 3: real-time messaging ---------- */
+.status { margin-left: auto; font-size: 0.8rem; font-weight: 600; padding: 0.2rem 0.6rem; border-radius: 999px; }
+.status-on { color: #067647; background: #ecfdf3; }
+.status-off { color: var(--bad); background: #fef3f2; }
+.message-list.list { display: block; }
+.bubble { max-width: 60%; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 0.5rem 0.75rem; margin-bottom: 0.6rem; }
+.bubble.own { margin-left: auto; background: var(--accent-soft); border-color: var(--accent-soft); }
+.bubble-sender { display: block; font-size: 0.78rem; font-weight: 700; color: var(--accent); margin-bottom: 0.15rem; }
+.bubble-text { margin: 0; white-space: pre-wrap; word-break: break-word; }
+.bubble-time { display: block; font-size: 0.72rem; color: var(--muted); margin-top: 0.2rem; text-align: right; }
+
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
