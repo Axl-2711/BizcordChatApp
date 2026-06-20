@@ -4,11 +4,15 @@ import Sidebar from '../components/Sidebar.jsx';
 import ChatHeader from '../components/ChatHeader.jsx';
 import MessageList from '../components/MessageList.jsx';
 import MessageInput from '../components/MessageInput.jsx';
+import TypingIndicator from '../components/TypingIndicator.jsx';
 import { ChatProvider, useChat } from '../context/ChatContext.jsx';
 
 function ChatPageInner() {
   const navigate = useNavigate();
-  const { username, connected, rooms, currentRoom, setCurrentRoom, messages, createRoom, sendMessage } = useChat();
+  const {
+    username, connected, rooms, currentRoom, setCurrentRoom, messages,
+    onlineUsers, typingUsers, createRoom, sendMessage, startTyping, stopTyping,
+  } = useChat();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
@@ -23,6 +27,7 @@ function ChatPageInner() {
         username={username}
         rooms={rooms}
         currentRoom={currentRoom}
+        onlineUsers={onlineUsers}
         open={sidebarOpen}
         onSelectRoom={(room) => { setCurrentRoom(room); setSidebarOpen(false); }}
         onCreateRoom={createRoom}
@@ -33,7 +38,14 @@ function ChatPageInner() {
       <main className="chat-main">
         <ChatHeader room={currentRoom} connected={connected} onMenu={() => setSidebarOpen(true)} />
         <MessageList room={currentRoom} messages={messages} username={username} />
-        <MessageInput room={currentRoom} onSend={sendMessage} disabled={!connected} />
+        <TypingIndicator users={typingUsers} />
+        <MessageInput
+          room={currentRoom}
+          onSend={sendMessage}
+          onTypingStart={startTyping}
+          onTypingStop={stopTyping}
+          disabled={!connected}
+        />
       </main>
     </div>
   );

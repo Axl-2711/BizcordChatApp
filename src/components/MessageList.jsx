@@ -5,6 +5,15 @@ function formatTime(ts) {
   return new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
+// Group consecutive messages from the same sender so we don't repeat the name/avatar.
+function groupMessages(messages) {
+  return messages.map((msg, i) => {
+    const prev = messages[i - 1];
+    const startsGroup = !prev || prev.socketId !== msg.socketId;
+    return { ...msg, startsGroup };
+  });
+}
+
 export default function MessageList({ room, messages, username }) {
   const endRef = useRef(null);
 
@@ -23,13 +32,15 @@ export default function MessageList({ room, messages, username }) {
     );
   }
 
+  const grouped = groupMessages(messages);
+
   return (
     <div className="message-list list" role="log" aria-label={`Messages in ${room}`}>
-      {messages.map((msg) => {
+      {grouped.map((msg) => {
         const own = msg.socketId === socket.id;
         return (
-          <div key={msg.id} className={`bubble ${own ? 'own' : ''}`}>
-            {!own && <span className="bubble-sender">{msg.username}</span>}
+          <div key={msg.id} className={`bubble ${own ? 'own' : ''} ${msg.startsGroup ? '' : 'grouped'}`}>
+            {!own && msg.startsGroup && <span className="bubble-sender">{msg.username}</span>}
             <p className="bubble-text">{msg.text}</p>
             <span className="bubble-time">{formatTime(msg.timestamp)}</span>
           </div>

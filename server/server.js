@@ -50,6 +50,14 @@ io.on('connection', (socket) => {
     io.to(room).emit('receive_message', message);
   });
 
+  socket.on('typing', ({ room }) => {
+    socket.to(room).emit('typing', { username: socket.data.username });
+  });
+
+  socket.on('stop_typing', ({ room }) => {
+    socket.to(room).emit('stop_typing', { username: socket.data.username });
+  });
+
   socket.on('disconnect', () => {
     if (socket.data.room) leaveRoom(socket, socket.data.room);
   });
@@ -62,6 +70,7 @@ io.on('connection', (socket) => {
       if (members.size === 0) rooms.delete(room);
     }
     socket.to(room).emit('user_left', { username: socket.data.username });
+    socket.to(room).emit('stop_typing', { username: socket.data.username });
     io.to(room).emit('room_users', usersIn(room));
     if (socket.data.room === room) socket.data.room = null;
   }

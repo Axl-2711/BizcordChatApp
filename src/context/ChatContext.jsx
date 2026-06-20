@@ -12,24 +12,36 @@ export function ChatProvider({ username, children }) {
   const [currentRoom, setCurrentRoom] = useState('General');
   const [messages, setMessages] = useState([]);
   const [onlineUsers, setOnlineUsers] = useState([]);
+  const [typingUsers, setTypingUsers] = useState([]);
 
-  // Join/leave the current room and listen for its messages + users.
+  // Join/leave the current room and listen for its messages, users, and typing.
   useEffect(() => {
     if (!username) return;
     setMessages([]);
+    setTypingUsers([]);
     socket.emit('join_room', { room: currentRoom, username });
 
     const onReceive = (msg) => {
       if (msg.room === currentRoom) setMessages((prev) => [...prev, msg]);
     };
     const onRoomUsers = (users) => setOnlineUsers(users);
+    const onTyping = ({ username: who }) => {
+      setTypingUsers((prev) => (prev.includes(who) ? prev : [...prev, who]));
+    };
+    const onStopTyping = ({ username: who }) => {
+      setTypingUsers((prev) => prev.filter((u) => u !== who));
+    };
 
     socket.on('receive_message', onReceive);
     socket.on('room_users', onRoomUsers);
+    socket.on('typing', onTyping);
+    socket.on('stop_typing', onStopTyping);
 
     return () => {
       socket.off('receive_message', onReceive);
       socket.off('room_users', onRoomUsers);
+      socket.off('typing', onTyping);
+      socket.off('stop_typing', onStopTyping);
       socket.emit('leave_room', { room: currentRoom });
     };
   }, [currentRoom, username]);
@@ -42,10 +54,13 @@ export function ChatProvider({ username, children }) {
   };
 
   const sendMessage = (text) => socket.emit('send_message', { room: currentRoom, text });
+  const startTyping = () => socket.emit('typing', { room: currentRoom });
+  const stopTyping = () => socket.emit('stop_typing', { room: currentRoom });
 
   const value = {
     username, connected, rooms, currentRoom, setCurrentRoom,
-    messages, onlineUsers, createRoom, sendMessage,
+    messages, onlineUsers, typingUsers, createRoom, sendMessage,
+    startTyping, stopTyping,
   };
 
   return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>;

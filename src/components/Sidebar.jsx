@@ -1,6 +1,7 @@
 import RoomList from './RoomList.jsx';
+import OnlineUsers from './OnlineUsers.jsx';
 
-export default function Sidebar({ username, rooms, currentRoom, open, onSelectRoom, onCreateRoom, onClose, onLeave }) {
+export default function Sidebar({ username, rooms, currentRoom, onlineUsers, open, onSelectRoom, onCreateRoom, onClose, onLeave }) {
   return (
     <aside className={`sidebar ${open ? 'open' : ''}`} aria-label="Rooms">
       <div className="sidebar-top">
@@ -20,6 +21,7 @@ export default function Sidebar({ username, rooms, currentRoom, open, onSelectRo
       </div>
 
       <RoomList rooms={rooms} currentRoom={currentRoom} onSelect={onSelectRoom} onCreate={onCreateRoom} />
+      <OnlineUsers users={onlineUsers} />
     </aside>
   );
 }
