@@ -1,5 +1,4 @@
 import { useEffect, useRef } from 'react';
-import { socket } from '../services/socket.js';
 
 function formatTime(ts) {
   return new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -9,7 +8,7 @@ function formatTime(ts) {
 function groupMessages(messages) {
   return messages.map((msg, i) => {
     const prev = messages[i - 1];
-    const startsGroup = !prev || prev.socketId !== msg.socketId;
+    const startsGroup = !prev || prev.username !== msg.username;
     return { ...msg, startsGroup };
   });
 }
@@ -37,7 +36,7 @@ export default function MessageList({ room, messages, username }) {
   return (
     <div className="message-list list" role="log" aria-label={`Messages in ${room}`}>
       {grouped.map((msg) => {
-        const own = msg.socketId === socket.id;
+        const own = msg.username === username;
         return (
           <div key={msg.id} className={`bubble ${own ? 'own' : ''} ${msg.startsGroup ? '' : 'grouped'}`}>
             {!own && msg.startsGroup && <span className="bubble-sender">{msg.username}</span>}

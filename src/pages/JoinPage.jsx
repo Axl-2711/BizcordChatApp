@@ -3,7 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar.jsx';
 
 export default function JoinPage() {
-  const [name, setName] = useState('');
+  const [name, setName] = useState(() => {
+    try { return localStorage.getItem('bizcord_username') || ''; } catch { return ''; }
+  });
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
@@ -12,6 +14,8 @@ export default function JoinPage() {
     const trimmed = name.trim();
     if (!trimmed) return setError('Enter a username to continue.');
     if (trimmed.length < 2) return setError('Username must be at least 2 characters.');
+    if (trimmed.length > 20) return setError('Username must be 20 characters or fewer.');
+    try { localStorage.setItem('bizcord_username', trimmed); } catch { /* ignore */ }
     // The username is passed to the chat page through the router (no Context yet).
     navigate('/chat', { state: { username: trimmed } });
   };
@@ -30,6 +34,7 @@ export default function JoinPage() {
               value={name}
               onChange={(e) => { setName(e.target.value); setError(''); }}
               placeholder="e.g. Asha"
+              maxLength={30}
               autoFocus
               autoComplete="off"
               aria-invalid={Boolean(error)}

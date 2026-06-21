@@ -14,13 +14,22 @@ const io = new Server(httpServer, { cors: { origin: 'http://localhost:5173' } })
 
 // room -> Map(socketId -> username)
 const rooms = new Map();
+// room -> last messages (in memory only, lost on restart)
+const history = new Map();
+const MAX_HISTORY = 100;
+
+const validRoom = (r) => typeof r === 'string' && r.trim().length > 0 && r.trim().length <= 24;
+const validName = (n) => typeof n === 'string' && n.trim().length >= 2 && n.trim().length <= 20;
 
 function usersIn(room) {
   return [...(rooms.get(room)?.values() ?? [])];
 }
 
 io.on('connection', (socket) => {
-  socket.on('join_room', ({ room, username }) => {
+  socket.on('join_room', ({ room, username } = {}, ack) => {
+    const reply = typeof ack === 'function' ? ack : () => {};
+    if (!validRoom(room)) return reply({ error: 'Invalid room.' });
+    if (!validName(username)) return reply({ error: 'Invalid username.' });
     const prevRoom = socket.data.room;
     if (prevRoom) leaveRoom(socket, prevRoom);
 
@@ -33,12 +42,14 @@ io.on('connection', (socket) => {
 
     socket.to(room).emit('user_joined', { username });
     io.to(room).emit('room_users', usersIn(room));
+    reply({ ok: true, history: history.get(room) ?? [] });
   });
 
   socket.on('leave_room', ({ room }) => leaveRoom(socket, room));
 
   socket.on('send_message', ({ room, text }) => {
-    if (!room || !text || !text.trim()) return;
+    if (!room || typeof text !== 'string' || !text.trim() || text.length > 500) return;
+    if (socket.data.room !== room) return;
     const message = {
       id: `${socket.id}-${Date.now()}`,
       room,
@@ -47,6 +58,10 @@ io.on('connection', (socket) => {
       socketId: socket.id,
       timestamp: Date.now(),
     };
+    const list = history.get(room) ?? [];
+    list.push(message);
+    if (list.length > MAX_HISTORY) list.shift();
+    history.set(room, list);
     io.to(room).emit('receive_message', message);
   });
 

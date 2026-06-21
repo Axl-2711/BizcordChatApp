@@ -99,3 +99,8 @@ textarea:disabled { background: var(--bg); }
 .bubble.grouped { margin-top: -0.4rem; }
 
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+
+/* ---------- Stage 6: connection banners ---------- */
+.banner { display: flex; align-items: center; gap: 0.75rem; padding: 0.5rem 1rem; background: #fffaeb; color: #93370d; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
+.banner .btn, .banner .link-btn { margin-left: auto; padding: 0.25rem 0.75rem; }
+.banner-error { background: #fef3f2; color: var(--bad); }

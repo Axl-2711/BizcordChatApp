@@ -5,7 +5,7 @@ export default function OnlineUsers({ users }) {
         <h2>Online ({users.length})</h2>
       </div>
       {users.length === 0 ? (
-        <p className="muted small">No one else is here yet.</p>
+        <p className="muted small">No users online.</p>
       ) : (
         <ul className="user-list">
           {users.map((name) => (
@@ -16,6 +16,7 @@ export default function OnlineUsers({ users }) {
           ))}
         </ul>
       )}
+      {users.length === 1 && <p className="muted small">You're the only one in this room.</p>}
     </div>
   );
 }

@@ -10,7 +10,7 @@ import { ChatProvider, useChat } from '../context/ChatContext.jsx';
 function ChatPageInner() {
   const navigate = useNavigate();
   const {
-    username, connected, rooms, currentRoom, setCurrentRoom, messages,
+    username, status, connected, retry, roomError, setRoomError, rooms, currentRoom, setCurrentRoom, messages,
     onlineUsers, typingUsers, createRoom, sendMessage, startTyping, stopTyping,
   } = useChat();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -36,7 +36,20 @@ function ChatPageInner() {
       />
       {sidebarOpen && <div className="overlay" onClick={() => setSidebarOpen(false)} aria-hidden="true" />}
       <main className="chat-main">
-        <ChatHeader room={currentRoom} connected={connected} onMenu={() => setSidebarOpen(true)} />
+        <ChatHeader room={currentRoom} status={status} onMenu={() => setSidebarOpen(true)} />
+        {status === 'unavailable' && (
+          <div className="banner banner-error" role="alert">
+            Can't reach the server. Make sure it is running (<code>npm run server</code>).
+            <button className="btn" onClick={retry}>Retry</button>
+          </div>
+        )}
+        {status === 'reconnecting' && <div className="banner" role="status">Connection lost. Reconnecting…</div>}
+        {roomError && (
+          <div className="banner banner-error" role="alert">
+            {roomError}
+            <button className="link-btn" onClick={() => setRoomError('')}>Dismiss</button>
+          </div>
+        )}
         <MessageList room={currentRoom} messages={messages} username={username} />
         <TypingIndicator users={typingUsers} />
         <MessageInput
@@ -53,10 +66,15 @@ function ChatPageInner() {
 
 export default function ChatPage() {
   const { state } = useLocation();
-  if (!state?.username) return <Navigate to="/" replace />;
+  // After a refresh the router state is gone, so fall back to localStorage.
+  let username = state?.username;
+  if (!username) {
+    try { username = localStorage.getItem('bizcord_username'); } catch { /* ignore */ }
+  }
+  if (!username) return <Navigate to="/" replace />;
 
   return (
-    <ChatProvider username={state.username}>
+    <ChatProvider username={username}>
       <ChatPageInner />
     </ChatProvider>
   );
