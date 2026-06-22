@@ -15,6 +15,11 @@ function ChatPageInner() {
   } = useChat();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
+  const closeSidebar = () => {
+    setSidebarOpen(false);
+    document.querySelector('.menu-btn')?.focus();
+  };
+
   useEffect(() => {
     const onKey = (e) => e.key === 'Escape' && setSidebarOpen(false);
     window.addEventListener('keydown', onKey);
@@ -23,6 +28,7 @@ function ChatPageInner() {
 
   return (
     <div className="chat-layout">
+      <a className="skip-link" href="#message">Skip to message input</a>
       <Sidebar
         username={username}
         rooms={rooms}
@@ -31,12 +37,12 @@ function ChatPageInner() {
         open={sidebarOpen}
         onSelectRoom={(room) => { setCurrentRoom(room); setSidebarOpen(false); }}
         onCreateRoom={createRoom}
-        onClose={() => setSidebarOpen(false)}
+        onClose={closeSidebar}
         onLeave={() => navigate('/')}
       />
-      {sidebarOpen && <div className="overlay" onClick={() => setSidebarOpen(false)} aria-hidden="true" />}
+      {sidebarOpen && <div className="overlay" onClick={closeSidebar} aria-hidden="true" />}
       <main className="chat-main">
-        <ChatHeader room={currentRoom} status={status} onMenu={() => setSidebarOpen(true)} />
+        <ChatHeader room={currentRoom} status={status} menuOpen={sidebarOpen} onMenu={() => setSidebarOpen(true)} />
         {status === 'unavailable' && (
           <div className="banner banner-error" role="alert">
             Can't reach the server. Make sure it is running (<code>npm run server</code>).

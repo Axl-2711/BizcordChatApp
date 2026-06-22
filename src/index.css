@@ -98,9 +98,60 @@ textarea:disabled { background: var(--bg); }
 .char-count { position: absolute; right: 0.6rem; bottom: 0.4rem; pointer-events: none; }
 .bubble.grouped { margin-top: -0.4rem; }
 
-@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 
 /* ---------- Stage 6: connection banners ---------- */
 .banner { display: flex; align-items: center; gap: 0.75rem; padding: 0.5rem 1rem; background: #fffaeb; color: #93370d; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
 .banner .btn, .banner .link-btn { margin-left: auto; padding: 0.25rem 0.75rem; }
 .banner-error { background: #fef3f2; color: var(--bad); }
+
+/* ---------- Stage 7: polish & accessibility ---------- */
+.btn, .icon-btn, .room-item, .link-btn { transition: background-color 0.15s, border-color 0.15s, color 0.15s; }
+.btn:hover:not(:disabled) { background: var(--accent-soft); }
+.btn-primary:hover:not(:disabled) { background: var(--accent-hover); }
+.btn:active:not(:disabled) { transform: translateY(1px); }
+.link-btn:hover { color: var(--accent-hover); }
+input:focus-visible, textarea:focus-visible { outline: 3px solid #818cf8; outline-offset: 0; border-color: var(--accent); }
+.icon-btn { width: 40px; height: 40px; }
+.room-item { min-height: 40px; }
+.room-item:focus-visible { outline-offset: -2px; }
+.room-item.active .hash { color: var(--accent); }
+
+.skip-link { position: absolute; left: 0.5rem; top: -3rem; z-index: 50; background: var(--accent); color: #fff; padding: 0.5rem 0.9rem; border-radius: 8px; text-decoration: none; font-weight: 600; }
+.skip-link:focus { top: 0.5rem; }
+
+.status { display: inline-flex; align-items: center; gap: 0.4rem; white-space: nowrap; }
+.status-dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+.status-on .status-dot { background: #12b76a; }
+
+.message-list { overscroll-behavior: contain; scroll-behavior: smooth; }
+.bubble { animation: bubble-in 0.18s ease-out; }
+@keyframes bubble-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+.empty { padding: 1rem; }
+.empty h2 { font-size: 1.15rem; }
+.message-input { padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px)); }
+.message-input textarea { max-height: 8.5rem; overflow-y: auto; line-height: 1.4; }
+.message-input .btn { align-self: flex-end; min-height: 42px; }
+
+@media (max-width: 767px) {
+  /* Hide the closed drawer from keyboard/screen readers (visibility waits for the slide-out). */
+  .sidebar:not(.open) { visibility: hidden; transition: transform 0.2s, visibility 0s 0.2s; }
+  .sidebar.open { visibility: visible; }
+  .bubble { max-width: 85%; }
+  input, textarea { font-size: 16px; } /* stops iOS zooming on focus */
+  .chat-header { padding: 0.6rem 0.75rem; }
+  .message-list { padding: 0.75rem; }
+  .message-input { padding-left: 0.75rem; padding-right: 0.75rem; }
+}
+@media (min-width: 1200px) {
+  .bubble { max-width: 520px; }
+}
+@media (max-width: 380px) {
+  .card { padding: 1.25rem; }
+  .chat-header h1 { font-size: 1rem; }
+  .status { font-size: 0.72rem; padding: 0.2rem 0.45rem; }
+  .message-input .btn { padding: 0.55rem 0.7rem; }
+  .banner { flex-wrap: wrap; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; scroll-behavior: auto !important; }
+}

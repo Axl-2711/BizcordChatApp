@@ -15,10 +15,20 @@ function groupMessages(messages) {
 
 export default function MessageList({ room, messages, username }) {
   const endRef = useRef(null);
+  const listRef = useRef(null);
+  const nearBottom = useRef(true);
+
+  // Remember whether the user is near the bottom, so new messages don't yank them away from older ones.
+  const handleScroll = () => {
+    const el = listRef.current;
+    nearBottom.current = el.scrollHeight - el.scrollTop - el.clientHeight < 120;
+  };
 
   useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+    const last = messages[messages.length - 1];
+    const mine = last?.username === username;
+    if (nearBottom.current || mine) endRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages, username]);
 
   if (messages.length === 0) {
     return (
@@ -34,7 +44,7 @@ export default function MessageList({ room, messages, username }) {
   const grouped = groupMessages(messages);
 
   return (
-    <div className="message-list list" role="log" aria-label={`Messages in ${room}`}>
+    <div ref={listRef} onScroll={handleScroll} className="message-list list" role="log" aria-live="polite" aria-label={`Messages in ${room}`}>
       {grouped.map((msg) => {
         const own = msg.username === username;
         return (

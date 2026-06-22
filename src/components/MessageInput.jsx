@@ -7,6 +7,15 @@ export default function MessageInput({ room, onSend, onTypingStart, onTypingStop
   const [text, setText] = useState('');
   const stopTimer = useRef(null);
   const isTyping = useRef(false);
+  const areaRef = useRef(null);
+
+  // Grow the textarea with its content (CSS caps the height).
+  useEffect(() => {
+    const el = areaRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${el.scrollHeight}px`;
+  }, [text]);
 
   // Always stop the "typing" signal, and clear any pending timer, when unmounting or switching rooms.
   useEffect(() => {
@@ -55,6 +64,7 @@ export default function MessageInput({ room, onSend, onTypingStart, onTypingStop
       <div className="input-wrap">
         <textarea
           id="message"
+          ref={areaRef}
           rows={1}
           value={text}
           onChange={handleChange}
@@ -63,7 +73,7 @@ export default function MessageInput({ room, onSend, onTypingStart, onTypingStop
           disabled={disabled}
           maxLength={MAX_LEN}
         />
-        <span className="char-count small muted">{text.length}/{MAX_LEN}</span>
+        <span className="char-count small muted" aria-hidden="true">{text.length}/{MAX_LEN}</span>
       </div>
       <button className="btn btn-primary" type="submit" disabled={disabled || !text.trim()}>Send</button>
     </form>
