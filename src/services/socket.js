@@ -1,10 +1,8 @@
 import { io } from 'socket.io-client';
 
-const URL = 'http://localhost:4000';
+const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:4000';
 
-// A single shared socket instance for the whole app.
-export const socket = io(URL, {
-  autoConnect: true,
-  reconnectionAttempts: 5, // after 5 failed tries we show "server unavailable"
-  reconnectionDelayMax: 3000,
-});
+// One socket per logged-in user. The context connects and disconnects it.
+export function createSocket() {
+  return io(SERVER_URL, { autoConnect: true, reconnectionDelay: 1000, reconnectionDelayMax: 5000 });
+}

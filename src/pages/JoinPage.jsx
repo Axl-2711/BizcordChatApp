@@ -1,13 +1,14 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import Navbar from '../components/Navbar.jsx';
+import { Navigate, useNavigate } from 'react-router-dom';
+import { useChat } from '../context/ChatContext.jsx';
 
 export default function JoinPage() {
-  const [name, setName] = useState(() => {
-    try { return localStorage.getItem('bizcord_username') || ''; } catch { return ''; }
-  });
+  const { currentUser, login } = useChat();
+  const [name, setName] = useState('');
   const [error, setError] = useState('');
   const navigate = useNavigate();
+
+  if (currentUser) return <Navigate to="/chat" replace />;
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -15,36 +16,35 @@ export default function JoinPage() {
     if (!trimmed) return setError('Enter a username to continue.');
     if (trimmed.length < 2) return setError('Username must be at least 2 characters.');
     if (trimmed.length > 20) return setError('Username must be 20 characters or fewer.');
-    try { localStorage.setItem('bizcord_username', trimmed); } catch { /* ignore */ }
-    // The username is passed to the chat page through the router (no Context yet).
-    navigate('/chat', { state: { username: trimmed } });
+    login(trimmed);
+    navigate('/chat');
   };
 
   return (
-    <div className="app-shell">
-      <Navbar />
-      <main className="join-page">
-        <div className="card">
-          <h1>Welcome to BizCord</h1>
-          <p className="muted">Real-time chat rooms. Pick a name and start talking.</p>
-          <form onSubmit={handleSubmit} noValidate>
-            <label htmlFor="username">Username</label>
-            <input
-              id="username"
-              value={name}
-              onChange={(e) => { setName(e.target.value); setError(''); }}
-              placeholder="e.g. Asha"
-              maxLength={30}
-              autoFocus
-              autoComplete="off"
-              aria-invalid={Boolean(error)}
-              aria-describedby={error ? 'username-error' : undefined}
-            />
-            {error && <p id="username-error" className="field-error" role="alert">{error}</p>}
-            <button type="submit" className="btn btn-primary btn-block">Join chat</button>
-          </form>
+    <main className="join-page">
+      <div className="join-card">
+        <div className="brand brand-lg">
+          <span className="brand-mark" aria-hidden="true">B</span>
+          <h1>BizCord</h1>
         </div>
-      </main>
-    </div>
+        <p className="muted">Real-time chat rooms. Pick a name and start talking.</p>
+        <form onSubmit={handleSubmit} noValidate>
+          <label htmlFor="username">Username</label>
+          <input
+            id="username"
+            value={name}
+            onChange={(e) => { setName(e.target.value); setError(''); }}
+            placeholder="e.g. Asha"
+            maxLength={20}
+            autoFocus
+            autoComplete="off"
+            aria-invalid={Boolean(error)}
+            aria-describedby={error ? 'username-error' : undefined}
+          />
+          {error && <p id="username-error" className="field-error" role="alert">{error}</p>}
+          <button type="submit" className="btn btn-primary btn-block">Join chat</button>
+        </form>
+      </div>
+    </main>
   );
 }

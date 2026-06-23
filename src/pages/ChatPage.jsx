@@ -1,24 +1,15 @@
 import { useEffect, useState } from 'react';
-import { Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { Navigate } from 'react-router-dom';
+import { useChat } from '../context/ChatContext.jsx';
 import Sidebar from '../components/Sidebar.jsx';
 import ChatHeader from '../components/ChatHeader.jsx';
 import MessageList from '../components/MessageList.jsx';
-import MessageInput from '../components/MessageInput.jsx';
 import TypingIndicator from '../components/TypingIndicator.jsx';
-import { ChatProvider, useChat } from '../context/ChatContext.jsx';
+import MessageInput from '../components/MessageInput.jsx';
 
-function ChatPageInner() {
-  const navigate = useNavigate();
-  const {
-    username, status, connected, retry, roomError, setRoomError, rooms, currentRoom, setCurrentRoom, messages,
-    onlineUsers, typingUsers, createRoom, sendMessage, startTyping, stopTyping,
-  } = useChat();
+export default function ChatPage() {
+  const { currentUser, error, setError, connectionStatus } = useChat();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-
-  const closeSidebar = () => {
-    setSidebarOpen(false);
-    document.querySelector('.menu-btn')?.focus();
-  };
 
   useEffect(() => {
     const onKey = (e) => e.key === 'Escape' && setSidebarOpen(false);
@@ -26,62 +17,29 @@ function ChatPageInner() {
     return () => window.removeEventListener('keydown', onKey);
   }, []);
 
+  if (!currentUser) return <Navigate to="/" replace />;
+
   return (
     <div className="chat-layout">
-      <a className="skip-link" href="#message">Skip to message input</a>
-      <Sidebar
-        username={username}
-        rooms={rooms}
-        currentRoom={currentRoom}
-        onlineUsers={onlineUsers}
-        open={sidebarOpen}
-        onSelectRoom={(room) => { setCurrentRoom(room); setSidebarOpen(false); }}
-        onCreateRoom={createRoom}
-        onClose={closeSidebar}
-        onLeave={() => navigate('/')}
-      />
-      {sidebarOpen && <div className="overlay" onClick={closeSidebar} aria-hidden="true" />}
+      <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      {sidebarOpen && <div className="overlay" onClick={() => setSidebarOpen(false)} aria-hidden="true" />}
       <main className="chat-main">
-        <ChatHeader room={currentRoom} status={status} menuOpen={sidebarOpen} onMenu={() => setSidebarOpen(true)} />
-        {status === 'unavailable' && (
+        <ChatHeader onMenu={() => setSidebarOpen(true)} />
+        {connectionStatus === 'error' && (
           <div className="banner banner-error" role="alert">
-            Can't reach the server. Make sure it is running (<code>npm run server</code>).
-            <button className="btn" onClick={retry}>Retry</button>
+            Can't reach the server. Make sure it is running on port 4000. Retrying...
           </div>
         )}
-        {status === 'reconnecting' && <div className="banner" role="status">Connection lost. Reconnecting…</div>}
-        {roomError && (
-          <div className="banner banner-error" role="alert">
-            {roomError}
-            <button className="link-btn" onClick={() => setRoomError('')}>Dismiss</button>
+        {error && (
+          <div className="banner banner-warn" role="alert">
+            <span>{error}</span>
+            <button className="link-btn" onClick={() => setError('')}>Dismiss</button>
           </div>
         )}
-        <MessageList room={currentRoom} messages={messages} username={username} />
-        <TypingIndicator users={typingUsers} />
-        <MessageInput
-          room={currentRoom}
-          onSend={sendMessage}
-          onTypingStart={startTyping}
-          onTypingStop={stopTyping}
-          disabled={!connected}
-        />
+        <MessageList />
+        <TypingIndicator />
+        <MessageInput />
       </main>
     </div>
-  );
-}
-
-export default function ChatPage() {
-  const { state } = useLocation();
-  // After a refresh the router state is gone, so fall back to localStorage.
-  let username = state?.username;
-  if (!username) {
-    try { username = localStorage.getItem('bizcord_username'); } catch { /* ignore */ }
-  }
-  if (!username) return <Navigate to="/" replace />;
-
-  return (
-    <ChatProvider username={username}>
-      <ChatPageInner />
-    </ChatProvider>
   );
 }

@@ -1,22 +1,26 @@
-export default function OnlineUsers({ users }) {
+import { useChat } from '../context/ChatContext.jsx';
+import { initial } from '../utils/format.js';
+
+export default function OnlineUsers() {
+  const { onlineUsers, currentUser } = useChat();
   return (
-    <div>
+    <section className="section users-section" aria-label="Online users">
       <div className="section-head">
-        <h2>Online ({users.length})</h2>
+        <h2>Online in this room</h2>
+        <span className="count">{onlineUsers.length}</span>
       </div>
-      {users.length === 0 ? (
-        <p className="muted small">No users online.</p>
+      {onlineUsers.length === 0 ? (
+        <p className="muted small">No one is online yet.</p>
       ) : (
         <ul className="user-list">
-          {users.map((name) => (
-            <li key={name} className="user-item">
-              <span className="dot" aria-hidden="true" />
-              {name}
+          {onlineUsers.map((u) => (
+            <li key={u}>
+              <span className="avatar avatar-sm" aria-hidden="true">{initial(u)}</span>
+              <span>{u}{u === currentUser && <span className="muted"> (you)</span>}</span>
             </li>
           ))}
         </ul>
       )}
-      {users.length === 1 && <p className="muted small">You're the only one in this room.</p>}
-    </div>
+    </section>
   );
 }

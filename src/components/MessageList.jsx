@@ -1,61 +1,30 @@
 import { useEffect, useRef } from 'react';
+import { useChat } from '../context/ChatContext.jsx';
+import MessageBubble from './MessageBubble.jsx';
+import EmptyChat from './EmptyChat.jsx';
 
-function formatTime(ts) {
-  return new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-}
+const GROUP_WINDOW = 5 * 60 * 1000; // group same-sender messages sent within 5 minutes
 
-// Group consecutive messages from the same sender so we don't repeat the name/avatar.
-function groupMessages(messages) {
-  return messages.map((msg, i) => {
-    const prev = messages[i - 1];
-    const startsGroup = !prev || prev.username !== msg.username;
-    return { ...msg, startsGroup };
-  });
-}
-
-export default function MessageList({ room, messages, username }) {
-  const endRef = useRef(null);
-  const listRef = useRef(null);
-  const nearBottom = useRef(true);
-
-  // Remember whether the user is near the bottom, so new messages don't yank them away from older ones.
-  const handleScroll = () => {
-    const el = listRef.current;
-    nearBottom.current = el.scrollHeight - el.scrollTop - el.clientHeight < 120;
-  };
+export default function MessageList() {
+  const { messages, currentUser, currentRoom, onlineUsers } = useChat();
+  const bottomRef = useRef(null);
 
   useEffect(() => {
-    const last = messages[messages.length - 1];
-    const mine = last?.username === username;
-    if (nearBottom.current || mine) endRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, username]);
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+  }, [messages]);
 
-  if (messages.length === 0) {
-    return (
-      <div className="message-list" role="log" aria-label={`Messages in ${room}`}>
-        <div className="empty">
-          <h2>Welcome to #{room}</h2>
-          <p className="muted">No messages yet. Say hello!</p>
-        </div>
-      </div>
-    );
-  }
-
-  const grouped = groupMessages(messages);
+  const hasChat = messages.some((m) => m.type !== 'system');
 
   return (
-    <div ref={listRef} onScroll={handleScroll} className="message-list list" role="log" aria-live="polite" aria-label={`Messages in ${room}`}>
-      {grouped.map((msg) => {
-        const own = msg.username === username;
-        return (
-          <div key={msg.id} className={`bubble ${own ? 'own' : ''} ${msg.startsGroup ? '' : 'grouped'}`}>
-            {!own && msg.startsGroup && <span className="bubble-sender">{msg.username}</span>}
-            <p className="bubble-text">{msg.text}</p>
-            <span className="bubble-time">{formatTime(msg.timestamp)}</span>
-          </div>
-        );
+    <div className="message-list" role="log" aria-live="polite" aria-label={`Messages in ${currentRoom}`}>
+      {!hasChat && <EmptyChat room={currentRoom} alone={onlineUsers.length <= 1} />}
+      {messages.map((msg, i) => {
+        const prev = messages[i - 1];
+        const showHeader =
+          !prev || prev.type === 'system' || prev.username !== msg.username || msg.timestamp - prev.timestamp > GROUP_WINDOW;
+        return <MessageBubble key={msg.id} message={msg} own={msg.username === currentUser} showHeader={showHeader} />;
       })}
-      <div ref={endRef} />
+      <div ref={bottomRef} />
     </div>
   );
 }

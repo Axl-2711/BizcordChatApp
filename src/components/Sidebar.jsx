@@ -1,34 +1,38 @@
-import { useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useChat } from '../context/ChatContext.jsx';
+import { initial } from '../utils/format.js';
 import RoomList from './RoomList.jsx';
 import OnlineUsers from './OnlineUsers.jsx';
 
-export default function Sidebar({ username, rooms, currentRoom, onlineUsers, open, onSelectRoom, onCreateRoom, onClose, onLeave }) {
-  const closeRef = useRef(null);
-  // Move keyboard focus into the drawer when it opens (mobile only; the button is hidden on desktop).
-  useEffect(() => {
-    if (open) closeRef.current?.focus();
-  }, [open]);
+export default function Sidebar({ open, onClose }) {
+  const { currentUser, logout } = useChat();
+  const navigate = useNavigate();
+
+  const handleLeave = () => {
+    logout();
+    navigate('/');
+  };
 
   return (
-    <aside id="sidebar" className={`sidebar ${open ? 'open' : ''}`} aria-label="Sidebar">
+    <aside className={`sidebar ${open ? 'open' : ''}`} aria-label="Rooms and people">
       <div className="sidebar-top">
         <div className="brand">
           <span className="brand-mark" aria-hidden="true">B</span>
           <span className="brand-name">BizCord</span>
         </div>
-        <button ref={closeRef} className="icon-btn sidebar-close" onClick={onClose} aria-label="Close menu">✕</button>
+        <button className="icon-btn sidebar-close" onClick={onClose} aria-label="Close menu">✕</button>
       </div>
 
       <div className="profile">
-        <span className="avatar" aria-hidden="true">{username.charAt(0).toUpperCase()}</span>
+        <span className="avatar" aria-hidden="true">{initial(currentUser)}</span>
         <div className="profile-info">
-          <strong>{username}</strong>
-          <button className="link-btn" onClick={onLeave}>Leave chat</button>
+          <strong>{currentUser}</strong>
+          <button className="link-btn" onClick={handleLeave}>Leave chat</button>
         </div>
       </div>
 
-      <RoomList rooms={rooms} currentRoom={currentRoom} onSelect={onSelectRoom} onCreate={onCreateRoom} />
-      <OnlineUsers users={onlineUsers} />
+      <RoomList onSelect={onClose} />
+      <OnlineUsers />
     </aside>
   );
 }

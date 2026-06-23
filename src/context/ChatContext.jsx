@@ -1,112 +1,124 @@
-import { createContext, useContext, useEffect, useState } from 'react';
-import { socket } from '../services/socket.js';
-import { useSocket } from '../hooks/useSocket.js';
-
-const DEFAULT_ROOMS = ['General', 'Technology', 'Gaming', 'Movies', 'Random'];
-
-const ROOM_KEY = 'bizcord_last_room';
-const CUSTOM_KEY = 'bizcord_custom_rooms';
-
-function load(key, fallback) {
-  try {
-    const v = localStorage.getItem(key);
-    return v ? JSON.parse(v) : fallback;
-  } catch {
-    return fallback;
-  }
-}
-function save(key, value) {
-  try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* storage unavailable */ }
-}
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { createSocket } from '../services/socket.js';
+import { load, save, remove } from '../utils/storage.js';
 
 const ChatContext = createContext(null);
+const DEFAULT_ROOMS = ['General', 'Technology', 'Gaming', 'Movies', 'Random'];
 
-export function ChatProvider({ username, children }) {
-  const { status, connected, retry } = useSocket();
-  const [rooms, setRooms] = useState(() => [...DEFAULT_ROOMS, ...load(CUSTOM_KEY, [])]);
-  const [currentRoom, setCurrentRoom] = useState(() => {
-    const last = load(ROOM_KEY, 'General');
-    return [...DEFAULT_ROOMS, ...load(CUSTOM_KEY, [])].includes(last) ? last : 'General';
-  });
-  const [roomError, setRoomError] = useState('');
+export function ChatProvider({ children }) {
+  const [currentUser, setCurrentUser] = useState(() => load('bizcord_username'));
+  const [currentRoom, setCurrentRoom] = useState(() => load('bizcord_room', 'General'));
+  const [rooms, setRooms] = useState(DEFAULT_ROOMS);
   const [messages, setMessages] = useState([]);
   const [onlineUsers, setOnlineUsers] = useState([]);
   const [typingUsers, setTypingUsers] = useState([]);
+  const [connectionStatus, setConnectionStatus] = useState('connecting');
+  const [error, setError] = useState('');
 
-  // Join/leave the current room and listen for its messages, users, and typing.
-  useEffect(() => {
-    if (!username) return;
-    setMessages([]);
-    setTypingUsers([]);
-    setRoomError('');
-    save(ROOM_KEY, currentRoom);
+  const socketRef = useRef(null);
+  const roomRef = useRef(currentRoom); // latest room, readable inside socket listeners
 
-    // (Re)join whenever we connect - the server forgets us after a disconnect.
-    const join = () => {
-      socket.emit('join_room', { room: currentRoom, username }, (res) => {
-        if (res?.error) {
-          setRoomError(`${res.error} Switched back to General.`);
-          setCurrentRoom('General');
-        } else if (res?.history) {
+  // Join (or create) a room. Resolves with an error message, or '' on success.
+  const enterRoom = useCallback(
+    (name, create = false) =>
+      new Promise((resolve) => {
+        const socket = socketRef.current;
+        if (!socket || !socket.connected) return resolve('Not connected to the server.');
+        socket.emit('join_room', { room: name, username: currentUser, create }, (res) => {
+          if (!res.ok) return resolve(res.error);
+          roomRef.current = res.room;
+          setCurrentRoom(res.room);
+          save('bizcord_room', res.room);
           setMessages(res.history);
-        }
-      });
-    };
-    if (socket.connected) join();
-    socket.on('connect', join);
+          setOnlineUsers(res.users);
+          setRooms(res.rooms);
+          setTypingUsers([]);
+          resolve('');
+        });
+      }),
+    [currentUser]
+  );
 
-    const onReceive = (msg) => {
-      if (msg.room === currentRoom) setMessages((prev) => [...prev, msg]);
-    };
-    const onRoomUsers = (users) => setOnlineUsers(users);
-    const onTyping = ({ username: who }) => {
-      setTypingUsers((prev) => (prev.includes(who) ? prev : [...prev, who]));
-    };
-    const onStopTyping = ({ username: who }) => {
-      setTypingUsers((prev) => prev.filter((u) => u !== who));
-    };
+  // Connect once per user and clean up every listener on unmount/logout.
+  useEffect(() => {
+    if (!currentUser) return;
+    const socket = createSocket();
+    socketRef.current = socket;
+    setConnectionStatus('connecting');
 
-    socket.on('receive_message', onReceive);
-    socket.on('room_users', onRoomUsers);
+    const onConnect = async () => {
+      setConnectionStatus('connected');
+      const err = await enterRoom(roomRef.current); // also re-joins after a reconnect
+      if (err) {
+        setError(`${err} Moved you to General.`);
+        await enterRoom('General');
+      } else {
+        setError('');
+      }
+    };
+    const onDisconnect = (reason) =>
+      setConnectionStatus(reason === 'io client disconnect' ? 'connecting' : 'reconnecting');
+    const onConnectError = () => setConnectionStatus('error');
+
+    const addSystem = (text) =>
+      setMessages((prev) => [...prev, { id: `sys-${Date.now()}-${Math.random()}`, type: 'system', text }]);
+
+    const onMessage = (msg) => {
+      if (msg.room !== roomRef.current) return;
+      setMessages((prev) => [...prev, msg]);
+      setTypingUsers((prev) => prev.filter((u) => u !== msg.username));
+    };
+    const onJoined = (d) => d.room === roomRef.current && addSystem(`${d.username} joined the room`);
+    const onLeft = (d) => d.room === roomRef.current && addSystem(`${d.username} left the room`);
+    const onUsers = (d) => d.room === roomRef.current && setOnlineUsers(d.users);
+    const onTyping = (d) =>
+      d.room === roomRef.current && setTypingUsers((prev) => (prev.includes(d.username) ? prev : [...prev, d.username]));
+    const onStopTyping = (d) => setTypingUsers((prev) => prev.filter((u) => u !== d.username));
+
+    socket.on('connect', onConnect);
+    socket.on('disconnect', onDisconnect);
+    socket.on('connect_error', onConnectError);
+    socket.on('receive_message', onMessage);
+    socket.on('user_joined', onJoined);
+    socket.on('user_left', onLeft);
+    socket.on('room_users', onUsers);
     socket.on('typing', onTyping);
     socket.on('stop_typing', onStopTyping);
+    socket.on('room_list', setRooms);
 
     return () => {
-      socket.off('connect', join);
-      socket.off('receive_message', onReceive);
-      socket.off('room_users', onRoomUsers);
-      socket.off('typing', onTyping);
-      socket.off('stop_typing', onStopTyping);
-      if (socket.connected) socket.emit('leave_room', { room: currentRoom });
+      socket.off();
+      socket.disconnect();
+      socketRef.current = null;
     };
-  }, [currentRoom, username]);
+  }, [currentUser, enterRoom]);
 
-  const createRoom = (name) => {
-    name = name.trim();
-    if (!name) return 'Room name is required.';
-    if (name.length > 24) return 'Room name must be 24 characters or fewer.';
-    if (rooms.some((r) => r.toLowerCase() === name.toLowerCase())) return 'That room already exists.';
-    setRooms([...rooms, name]);
-    save(CUSTOM_KEY, [...rooms, name].filter((r) => !DEFAULT_ROOMS.includes(r)));
-    setCurrentRoom(name);
-    return '';
+  const login = (username) => {
+    save('bizcord_username', username);
+    setCurrentUser(username);
   };
 
-  const sendMessage = (text) => socket.emit('send_message', { room: currentRoom, text });
-  const startTyping = () => socket.emit('typing', { room: currentRoom });
-  const stopTyping = () => socket.emit('stop_typing', { room: currentRoom });
+  const logout = () => {
+    socketRef.current?.emit('leave_room');
+    remove('bizcord_username');
+    setCurrentUser('');
+    setMessages([]);
+    setOnlineUsers([]);
+    setTypingUsers([]);
+  };
+
+  const sendMessage = (text) => socketRef.current?.emit('send_message', { text });
+  const sendTyping = (isTyping) => socketRef.current?.emit(isTyping ? 'typing' : 'stop_typing');
 
   const value = {
-    username, status, connected, retry, roomError, setRoomError, rooms, currentRoom, setCurrentRoom,
-    messages, onlineUsers, typingUsers, createRoom, sendMessage,
-    startTyping, stopTyping,
+    currentUser, currentRoom, rooms, messages, onlineUsers, typingUsers, connectionStatus, error,
+    setError, login, logout, enterRoom, sendMessage, sendTyping,
   };
-
   return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>;
 }
 
 export function useChat() {
   const ctx = useContext(ChatContext);
-  if (!ctx) throw new Error('useChat must be used inside a ChatProvider');
+  if (!ctx) throw new Error('useChat must be used inside ChatProvider');
   return ctx;
 }
