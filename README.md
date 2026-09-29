@@ -63,4 +63,5 @@ Runs at http://localhost:4000. Run it in a second terminal. Optional env vars: `
 Persistent storage, authentication, private messages, read receipts, message editing, automated tests.
 
 ## Author
-Your Name - [GitHub](https://github.com/Axl-2711)
+[GitHub](https://github.com/Axl-2711)
+
